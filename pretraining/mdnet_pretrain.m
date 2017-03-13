@@ -4,14 +4,14 @@ function [ ] = mdnet_pretrain( varargin )
 %
 % Modified from cnn_imagenet() in the MatConvNet library.
 % Hyeonseob Nam, 2015
-% 
+%
 
 % The list of tracking sequences for training MDNet.
 opts.seqsList  = {struct('dataset','vot2013','list','pretraining/seqList/vot13-otb.txt'),...
     struct('dataset','vot2014','list','pretraining/seqList/vot14-otb.txt'),...
     struct('dataset','vot2015','list','pretraining/seqList/vot15-otb.txt')};
 
-% The path to the initial network. 
+% The path to the initial network.
 opts.netFile    = fullfile('models','mdnet_init.mat') ;
 
 % The path to the output MDNet model.
@@ -50,6 +50,7 @@ genDir(opts.roiDir) ;
 if exist(opts.roiPath,'file')
     load(opts.roiPath) ;
 else
+     %% 得到这么多视频的训练数据，每帧包含50个正样本和200个负样本
     roidb = mdnet_setup_data(opts.seqsList, opts.sampling);
     save(opts.roiPath, 'roidb') ;
 end
@@ -110,19 +111,19 @@ function [ roidb ] = mdnet_setup_data(seqList, opts)
 
 roidb = {};
 for D = 1:length(seqList)
-    
+
     dataset = seqList{D}.dataset;
     seqs_train = importdata(seqList{D}.list);
-    
+
     roidb_ = cell(1,length(seqs_train));
-    
+
     for i = 1:length(seqs_train)
         seq = seqs_train{i};
         fprintf('sampling %s:%s ...\n', dataset, seq);
-        
+
         config = genConfig(dataset, seq);
         roidb_{i} = seq2roidb(config, opts);
-        
+
 % % Display samples
 %         figure(3);
 %         for t=1:length(config.imgList)
@@ -149,8 +150,10 @@ end
 function [ net ] = mdnet_init_train( opts, K )
 % -------------------------------------------------------------------------
 net = load(opts.netFile);
+% 去掉最后的两层
 net.layers = net.layers(1:end-2);
 
+% 加上fc6
 % domain-specific layers
 net.layers{end+1} = struct('type', 'conv', ...
     'name', 'fc6', ...
